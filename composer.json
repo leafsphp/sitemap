@@ -1,15 +1,13 @@
 {
-    "name": "leafs/date",
-    "description": "Leaf PHP date module",
+    "name": "leafs/sitemap",
+    "description": "Sitemap generator for Leaf apps",
     "keywords": [
-        "date",
-        "time",
-        "datetime",
+        "sitemap",
         "leaf",
         "php",
         "framework"
     ],
-    "homepage": "https://leafphp.netlify.app/#/",
+    "homepage": "https://leafphp.dev/",
     "type": "library",
     "license": "MIT",
     "authors": [
