@@ -33,7 +33,9 @@ class Sitemap
      */
     public static function source(callable $datasource)
     {
-        app()->hook('router.before', $datasource);
+        if (!storage()->exists('public' . DIRECTORY_SEPARATOR . 'sitemap.xml')) {
+            app()->hook('router.before', $datasource);
+        }
     }
 
     /**
@@ -118,42 +120,42 @@ class Sitemap
 
     public static function init()
     {
-        app()->hook('router.before.route', function ($context) {
-            foreach ($context['routes'] as $method => $routeGroup) {
-                if ($method !== 'GET') {
-                    continue;
-                }
-
-                foreach ($routeGroup as $route) {
-                    if (isset($route['sitemap']) && $route['sitemap'] === false) {
+        if (!file_exists('public' . DIRECTORY_SEPARATOR . 'sitemap.xml')) {
+            app()->hook('router.before.route', function ($context) {
+                foreach ($context['routes'] as $method => $routeGroup) {
+                    if ($method !== 'GET') {
                         continue;
                     }
 
-                    if (in_array($route['pattern'], array_keys(self::$mappings))) {
-                        foreach (self::$mappings[$route['pattern']] as $mapping) {
-                            self::$sitemap[] = [
-                                'loc' => _env('APP_URL') . '/' . ltrim($mapping['loc'], '/'),
-                                'lastmod' => $mapping['lastmod'] ?? date('c'),
-                                'changefreq' => $mapping['changefreq'] ?? null,
-                                'priority' => $mapping['priority'] ?? 0.5,
-                            ];
+                    foreach ($routeGroup as $route) {
+                        if (isset($route['sitemap']) && $route['sitemap'] === false) {
+                            continue;
                         }
 
-                        continue;
+                        if (in_array($route['pattern'], array_keys(self::$mappings))) {
+                            foreach (self::$mappings[$route['pattern']] as $mapping) {
+                                self::$sitemap[] = [
+                                    'loc' => _env('APP_URL') . '/' . ltrim($mapping['loc'], '/'),
+                                    'lastmod' => $mapping['lastmod'] ?? date('c'),
+                                    'changefreq' => $mapping['changefreq'] ?? null,
+                                    'priority' => $mapping['priority'] ?? 0.5,
+                                ];
+                            }
+
+                            continue;
+                        }
+
+                        self::$sitemap[] = [
+                            'loc' => _env('APP_URL') . '/' . ltrim($route['pattern'], '/'),
+                            'lastmod' => $route['sitemap']['lastmod'] ?? date('c'),
+                            'changefreq' => $route['sitemap']['changefreq'] ?? null,
+                            'priority' => $route['sitemap']['priority'] ?? 0.5,
+                        ];
                     }
-
-                    self::$sitemap[] = [
-                        'loc' => _env('APP_URL') . '/' . ltrim($route['pattern'], '/'),
-                        'lastmod' => $route['sitemap']['lastmod'] ?? date('c'),
-                        'changefreq' => $route['sitemap']['changefreq'] ?? null,
-                        'priority' => $route['sitemap']['priority'] ?? 0.5,
-                    ];
                 }
-            }
 
-            if (!file_exists('public' . DIRECTORY_SEPARATOR . 'sitemap.xml')) {
                 self::generate();
-            }
-        });
+            });
+        }
     }
 }
