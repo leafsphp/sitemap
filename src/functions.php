@@ -11,7 +11,7 @@ if (!function_exists('sitemap')) {
     {
         if (!\Leaf\Config::getStatic('sitemap')) {
             \Leaf\Config::singleton('sitemap', function () {
-                return new \Leaf\Sitemap;
+                return new \Leaf\Sitemap();
             });
         }
 
