@@ -47,9 +47,18 @@ class Sitemap
     {
         if (is_string($newUrl)) {
             $values['loc'] = $newUrl;
+            self::$mappings[$route][] = $values;
+            return;
         }
 
-        self::$mappings[$route] = is_array($newUrl) ? $newUrl : $values;
+        if (isset($newUrl['loc'])) {
+            self::$mappings[$route][] = $newUrl;
+            return;
+        }
+
+        foreach ($newUrl as $url) {
+            self::$mappings[$route][] = $url;
+        }
     }
 
     /**
@@ -70,11 +79,11 @@ class Sitemap
 
     /**
      * Generate the sitemap.xml file based on the added datasources and defined routes. This method compiles all the URLs and creates the sitemap file in the public directory.
-     * @return void
+     * @return bool
      */
     public static function generate()
     {
-
+        $sitemapFile = 'public' . DIRECTORY_SEPARATOR . 'sitemap.xml';
         $sitemapContent = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
         $sitemapContent .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">' . PHP_EOL;
 
@@ -99,7 +108,11 @@ class Sitemap
 
         $sitemapContent .= '</urlset>';
 
-        file_put_contents(PublicPath('sitemap.xml'), $sitemapContent);
+        if (storage()->exists($sitemapFile)) {
+            storage()->delete($sitemapFile);
+        }
+
+        return storage()->createFile($sitemapFile, $sitemapContent);
     }
 
 
@@ -138,7 +151,7 @@ class Sitemap
                 }
             }
 
-            if (!file_exists(PublicPath('sitemap.xml'))) {
+            if (!file_exists('public' . DIRECTORY_SEPARATOR . 'sitemap.xml')) {
                 self::generate();
             }
         });
