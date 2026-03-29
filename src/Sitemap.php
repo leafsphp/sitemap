@@ -33,7 +33,7 @@ class Sitemap
      */
     public static function source(callable $datasource)
     {
-        $datasource(self::$sitemap);
+        app()->hook('router.before', $datasource);
     }
 
     /**
