@@ -27,15 +27,43 @@ class Sitemap
     public static $mappings = [];
 
     /**
+     * Seconds after which the generated sitemap is considered stale.
+     * Null keeps the default behavior: generate once, refresh manually.
+     * @var int|null
+     */
+    public static $maxAge = null;
+
+    /**
      * Add a datasource for generating the sitemap. This allows you to include dynamic URLs from databases, APIs, or other sources.
      * @param callable $datasource A callback function that fetches data and adds URLs to the sitemap.
      * @return void
      */
     public static function source(callable $datasource)
     {
-        if (!storage()->exists('public' . DIRECTORY_SEPARATOR . 'sitemap.xml')) {
+        if (self::shouldGenerate()) {
             app()->hook('router.before', $datasource);
         }
+    }
+
+    /**
+     * Check whether the sitemap file is missing or older than the configured max age
+     * @return bool
+     */
+    protected static function shouldGenerate(): bool
+    {
+        $sitemapFile = 'public' . DIRECTORY_SEPARATOR . 'sitemap.xml';
+
+        if (!storage()->exists($sitemapFile)) {
+            return true;
+        }
+
+        if (self::$maxAge !== null) {
+            $modified = @filemtime($sitemapFile);
+
+            return $modified === false || (time() - $modified) > self::$maxAge;
+        }
+
+        return false;
     }
 
     /**
@@ -73,7 +101,7 @@ class Sitemap
     {
         self::$sitemap[] = [
             'loc' => _env('APP_URL') . '/' . ltrim($route, '/'),
-            'lastmod' => $options['lastmod'] ?? date('c'),
+            'lastmod' => $options['lastmod'] ?? null,
             'changefreq' => $options['changefreq'] ?? null,
             'priority' => $options['priority'] ?? 0.5,
         ];
@@ -101,7 +129,7 @@ class Sitemap
                 $sitemapContent .= '    <changefreq>' . htmlspecialchars($url['changefreq'], ENT_XML1, 'UTF-8') . '</changefreq>' . PHP_EOL;
             }
 
-            if (!empty($url['priority'])) {
+            if (isset($url['priority'])) {
                 $sitemapContent .= '    <priority>' . htmlspecialchars((string) $url['priority'], ENT_XML1, 'UTF-8') . '</priority>' . PHP_EOL;
             }
 
@@ -114,13 +142,13 @@ class Sitemap
             storage()->delete($sitemapFile);
         }
 
-        return storage()->createFile($sitemapFile, $sitemapContent);
+        return storage()->createFile($sitemapFile, $sitemapContent, ['recursive' => true]);
     }
 
 
     public static function init()
     {
-        if (!file_exists('public' . DIRECTORY_SEPARATOR . 'sitemap.xml')) {
+        if (self::shouldGenerate()) {
             app()->hook('router.before.route', function ($context) {
                 foreach ($context['routes'] as $method => $routeGroup) {
                     if ($method !== 'GET') {
@@ -136,7 +164,7 @@ class Sitemap
                             foreach (self::$mappings[$route['pattern']] as $mapping) {
                                 self::$sitemap[] = [
                                     'loc' => _env('APP_URL') . '/' . ltrim($mapping['loc'], '/'),
-                                    'lastmod' => $mapping['lastmod'] ?? date('c'),
+                                    'lastmod' => $mapping['lastmod'] ?? null,
                                     'changefreq' => $mapping['changefreq'] ?? null,
                                     'priority' => $mapping['priority'] ?? 0.5,
                                 ];
@@ -145,9 +173,15 @@ class Sitemap
                             continue;
                         }
 
+                        // dynamic routes with no mapping would leak raw
+                        // patterns like /blog/{slug} into the sitemap
+                        if (strpbrk($route['pattern'], '{(') !== false) {
+                            continue;
+                        }
+
                         self::$sitemap[] = [
                             'loc' => _env('APP_URL') . '/' . ltrim($route['pattern'], '/'),
-                            'lastmod' => $route['sitemap']['lastmod'] ?? date('c'),
+                            'lastmod' => $route['sitemap']['lastmod'] ?? null,
                             'changefreq' => $route['sitemap']['changefreq'] ?? null,
                             'priority' => $route['sitemap']['priority'] ?? 0.5,
                         ];
