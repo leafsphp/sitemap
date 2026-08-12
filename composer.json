@@ -34,7 +34,7 @@
         "leafs/anchor": "*"
     },
     "require-dev": {
-        "leafs/alchemy": "v5.x-dev",
+        "leafs/alchemy": "^5.0",
         "friendsofphp/php-cs-fixer": "*",
         "pestphp/pest": "*"
     },
