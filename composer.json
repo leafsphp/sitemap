@@ -30,8 +30,8 @@
     "prefer-stable": true,
     "require": {
         "php": "^8.2",
-        "leafs/fs": "*",
-        "leafs/anchor": "*"
+        "leafs/fs": "^5.0",
+        "leafs/anchor": "^5.0"
     },
     "require-dev": {
         "leafs/alchemy": "^5.0",
