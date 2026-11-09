@@ -49,7 +49,9 @@ actions:
     extensions: json, zip, dom, curl, libxml, mbstring
     versions:
       - '8.2'
+      - '8.3'
       - '8.4'
+      - '8.5'
   events:
     - push
     - pull_request
